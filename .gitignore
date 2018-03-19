@@ -1,0 +1,5 @@
+/Debug
+/SIMD/Debug
+/SIMD/*.user
+/.vs
+x64
