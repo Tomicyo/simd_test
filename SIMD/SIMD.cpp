@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include <xmmintrin.h>
+#include <immintrin.h>
 
 void VSFastMulSIMD(const Matrix3x3W & InM1, const Matrix3x3W & InM2, Matrix3x3W & OutM)
 {
@@ -119,17 +120,31 @@ void VSFastNormalizeSIMD(const Vector3 &InV, Vector3 &OutV)
 {
     const float fThree = 3.0f;
     const float fOneHalf = 0.5f;
-    __m128 v1 = _mm_setr_ps(InV.x, InV.y, InV.z, 0);
-    __m128 v2 = _mm_mul_ps(v1, v1);
-    __m128 v3 = _mm_shuffle_ps(v2, v2, _MM_SHUFFLE(1, 1, 1, 1));
-    __m128 v4 = _mm_shuffle_ps(v2, v2, _MM_SHUFFLE(2, 2, 2, 2));
-    __m128 v5 = _mm_add_ps(_mm_add_ps(v3, v4), v2);
-    __m128 v6 = _mm_shuffle_ps(v5, v5, _MM_SHUFFLE(0, 0, 0, 0));
-    __m128 v7 = _mm_rsqrt_ps(v6);
-    __m128 v8 = _mm_mul_ps(v1, v7);
-    OutV.x = *(float*)&v8;
-    OutV.y = *((float*)&v8 + 1);
-    OutV.z = *((float*)&v8 + 2);
+    __m128 xyz = _mm_setr_ps(InV.x, InV.y, InV.z, 0);
+    __m128 xyz2 = _mm_mul_ps(xyz, xyz);
+    __m128 yyy2 = _mm_shuffle_ps(xyz2, xyz2, _MM_SHUFFLE(1, 1, 1, 1));
+    __m128 zzz2 = _mm_shuffle_ps(xyz2, xyz2, _MM_SHUFFLE(2, 2, 2, 2));
+    __m128 tmp = _mm_add_ps(_mm_add_ps(yyy2, zzz2), xyz2);
+    __m128 x2y2z2 = _mm_shuffle_ps(tmp, tmp, _MM_SHUFFLE(0, 0, 0, 0));
+    __m128 r_x2y2z2 = _mm_rsqrt_ps(x2y2z2);
+    // 牛顿迭代
+    __m128 ft = _mm_set_ps1(fThree);
+    __m128 fo = _mm_set_ps1(fOneHalf);
+    __m128 a = _mm_and_ps(
+        _mm_mul_ss(
+            _mm_sub_ss(ft, 
+                _mm_mul_ss(
+                    _mm_mul_ss(r_x2y2z2, tmp), 
+                    r_x2y2z2)),
+        _mm_mul_ss(fo, r_x2y2z2)),
+        _mm_cmp_ss(_mm_set_ps1(0.f), tmp, 4));// 精度比较
+    __m128 a2 = _mm_shuffle_ps(a, a, 0);
+    __m128 a3 = _mm_mul_ps(a2, xyz);
+
+    //__m128 v8 = _mm_mul_ps(xyz, r_x2y2z2); // 最简单粗暴
+    OutV.x = *(float*)&a3;
+    OutV.y = *((float*)&a3 + 1);
+    OutV.z = *((float*)&a3 + 2);
 }
 
 void VSFastNormalizeSIMD(const Vector3W &InV, Vector3W &OutV)

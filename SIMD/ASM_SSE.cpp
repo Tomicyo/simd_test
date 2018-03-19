@@ -220,8 +220,8 @@ void VSFastNormalizeASM(const Vector3 &InV, Vector3 &OutV)
         subss xmm3, xmm0;
         mulss xmm3, xmm2;
 
-        xorps xmm4, xmm4;
-        cmpss xmm4, xmm1, 4;
+        xorps xmm4, xmm4; // 0
+        cmpss xmm4, xmm1, 4; // avx
 
         andps xmm3, xmm4;
 
