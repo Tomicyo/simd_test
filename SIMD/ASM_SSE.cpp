@@ -172,8 +172,8 @@ void VSFastNormalizeASM(const Vector2 &InV, Vector2 &OutV)
         movss xmm2, xmm0;
         mulss xmm0, xmm1;
         mulss xmm0, xmm2;
-        mulss xmm2, [fOneHalf];
         subss xmm3, xmm0;
+        mulss xmm2, [fOneHalf];
         mulss xmm3, xmm2;
 
         xorps xmm4, xmm4;

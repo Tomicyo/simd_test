@@ -105,15 +105,25 @@ void VSFastNormalizeSIMD(const Vector2 &InV, Vector2 &OutV)
 {
     const float fThree = 3.0f;
     const float fOneHalf = 0.5f;
-    __m128 v1 = _mm_setr_ps(InV.x, InV.y, 0, 0);
-    __m128 v2 = _mm_mul_ps(v1, v1);
-    __m128 v3 = _mm_shuffle_ps(v2, v2, _MM_SHUFFLE(3, 2, 0, 1));
-    __m128 v4 = _mm_shuffle_ps(v3, v3, _MM_SHUFFLE(3, 2, 0, 1));
-    __m128 v5 = _mm_add_ps(v3, v4);
-    __m128 v6 = _mm_rsqrt_ps(v5);
-    __m128 v7 = _mm_mul_ps(v1, v6);
-    OutV.x = *(float*)&v7;
-    OutV.y = *((float*)&v7 + 1);
+    __m128 ft = _mm_set_ss(fThree);
+    __m128 fo = _mm_set_ss(fOneHalf);
+    __m128 xy = _mm_setr_ps(InV.x, InV.y, 0, 0);
+    __m128 xy2_ = _mm_mul_ps(xy, xy);
+    __m128 yx2 = _mm_shuffle_ps(xy2_, xy2_, _MM_SHUFFLE(0, 0, 0, 0));
+    __m128 xy2 = _mm_shuffle_ps(xy2_, xy2_, _MM_SHUFFLE(1, 1, 1, 1));
+    __m128 x2y2 = _mm_add_ss(yx2, xy2);
+    __m128 r_x2y2 = _mm_rsqrt_ss(x2y2);
+
+    // Å£¶Ùµü´ú
+    __m128 f2 = _mm_sub_ss(ft, _mm_mul_ss(_mm_mul_ss(r_x2y2, x2y2), r_x2y2));
+    __m128 f3 = _mm_and_ps(_mm_mul_ss(f2, _mm_mul_ss(r_x2y2, fo)),
+        _mm_cmp_ss(_mm_xor_ps(f2, f2), x2y2, 4));
+    f3 = _mm_shuffle_ps(f3, f3, 0);
+    f3 = _mm_mul_ps(f3, xy);
+
+    //__m128 v7 = _mm_mul_ps(xy, r_x2y2);
+    OutV.x = *(float*)&f3;
+    OutV.y = *((float*)&f3 + 1);
 }
 
 void VSFastNormalizeSIMD(const Vector3 &InV, Vector3 &OutV)
