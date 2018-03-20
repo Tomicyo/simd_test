@@ -322,3 +322,45 @@ float VSFastLengthASM(const Vector3 &vec)
     }
     return rt;
 }
+
+float VSFastLengthASM(const Vector3W &vec)
+{
+    float rt = 0.f;
+    const float fThree = 3.0f;
+    const float fOneHalf = 0.5f;
+    __asm
+    {
+        mov ecx, [vec];
+        movups xmm0, [ecx];
+        mulps xmm0, xmm0;
+
+        movaps xmm1, xmm0;
+        shufps xmm0, xmm0, _MM_SHUFFLE(0, 0, 2, 0);
+        shufps xmm1, xmm1, _MM_SHUFFLE(0, 0, 3, 1);
+
+        addps xmm1, xmm0;
+
+        movaps xmm2, xmm1;
+        shufps xmm2, xmm2, _MM_SHUFFLE(1, 1, 1, 1);
+
+        addss xmm1, xmm2;
+
+        rsqrtss xmm0, xmm1;
+        // Newton-Raphson iteration
+        movss xmm3, [fThree];
+        movss xmm2, xmm0;
+        mulss xmm0, xmm1;
+        mulss xmm0, xmm2;
+        mulss xmm2, [fOneHalf];
+        subss xmm3, xmm0;
+        mulss xmm3, xmm2;
+
+        xorps xmm4, xmm4;
+        cmpss xmm4, xmm1, 4;
+
+        mulss xmm3, xmm1;
+        andps xmm3, xmm4;
+        movss[rt], xmm3;
+    }
+    return rt;
+}
